@@ -1,7 +1,5 @@
 ---
-title: "Client Report - [Insert Project Title]"
-subtitle: "Course DS 250"
-author: "[STUDENT NAME]"
+title: "Semester Project"
 format:
   html:
     self-contained: true
@@ -22,7 +20,203 @@ format:
         caption: See code
 execute: 
   warning: false
-    
+  results: false
+  message: false
 ---
 
-### Paste in a template
+```{r}
+library(tidyverse)
+library(readxl)
+library(scales)
+
+rwdb <- read_csv('https://gitlab.com/crossref/retraction-watch-data/-/raw/main/retraction_watch.csv?ref_type=heads&plain=0')
+
+rwdb <- rwdb %>% 
+  separate_rows(Subject, sep = ';') %>% 
+  filter(!is.na(Subject) & Subject != "") %>% 
+  separate_rows(Country, sep = ';') %>% 
+  filter(!is.na(Country) & Country != "")
+
+rwdb <- rwdb %>% 
+  mutate(
+    RetractionDate = as.POSIXct(RetractionDate, format = "%m/%d/%Y"),
+    ret_year = year(RetractionDate),
+    ret_month = month(RetractionDate),
+    ret_day = day(RetractionDate),
+    abb_sub = substr(Subject, 2, 4)
+  ) %>% 
+  filter(
+    ret_year >= 1928
+  )
+
+rwdb <- rwdb |> 
+  mutate(
+    OriginalPaperDate = as.POSIXct(OriginalPaperDate, format = "%m/%d/%Y %H:%M"),
+    pub_year = year(OriginalPaperDate),
+    pub_month = month(OriginalPaperDate),
+    pub_day = day(OriginalPaperDate)
+  )
+
+modern <- rwdb |> 
+  filter(
+    pub_year >= 2010
+  )
+
+total <- read_excel("~/College Classes/DS 350/OECD.STI.STP,DSD_BIBLIO@DF_BIBLIO,1.1,filtered,2026-07-13 11-53-03.xlsx")
+
+top_c <-  modern %>% 
+   group_by(Country) %>% 
+   summarise(
+     Retracted = n_distinct(`Record ID`)
+   )%>% 
+   arrange(desc(Retracted)) %>% 
+   head(5)
+
+top_c <- top_c |> 
+  left_join(total, join_by(Country == country)) 
+
+top_c <- top_c |> 
+  select(Country, Retracted, Total)
+
+top_c <- top_c %>% 
+  mutate(Country = fct_reorder(Country, Retracted, .desc = TRUE))
+
+# top_s <-  modern %>% 
+#    group_by(Subject) %>% 
+#    summarise(
+#      count = n()
+#    )%>% 
+#    arrange(desc(count)) %>% 
+#    head(10)
+# 
+# top_s <- top_s %>% 
+#   mutate(Subject = fct_reorder(Subject, count, .desc = TRUE))
+# 
+# top_a <-  modern %>% 
+#    group_by(abb_sub) %>% 
+#    summarise(
+#      count = n()
+#    )%>% 
+#    arrange(desc(count)) %>% 
+#    head(10)
+# 
+# top_a <- top_a %>% 
+#   mutate(abb_sub = fct_reorder(abb_sub, count, .desc = TRUE))
+```
+
+My main question for this project is which countries retract the most scientific publications. After quick analysis, I was able to find that the countries with the most retractions are China, India, the United States, Russia, and Saudi Arabia.
+
+
+```{r}
+top_c_long <- pivot_longer(top_c, cols = c(Retracted, Total),
+                         names_to = "metric", values_to = "value")
+
+ggplot(
+  top_c_long,
+  aes(
+    x = Country,
+    y = value,
+    fill = metric
+    )) +
+  geom_bar(stat = 'identity', position = "dodge") +
+  labs(
+       title = 'China has the most Retracted Publications but also Publishes the Most',
+       x = "Country",
+       y = "Number of Publications",
+       fill = ''
+       ) +
+  scale_y_continuous(
+    labels = comma
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+    )
+
+```
+
+As seen in the graph above, while China does retract the most they also publish the most scientific publications. When analyzing what percent of publications get retracted we find that China is only ranked third with Russia and Saudi Arabia surpassing them.
+
+```{r}
+top_c_per <- top_c |> 
+  group_by(Country) |> 
+  summarise(
+    per = Retracted/Total
+  ) |> 
+  mutate(Country = fct_reorder(Country, per, .desc = TRUE))
+
+ggplot(
+  top_c_per,
+  aes(
+    x = Country,
+    y = per
+  )
+) +
+  geom_col() +
+  scale_y_continuous(labels = percent) +
+  labs(
+    title = 'Percent of Publications Retracted by Country'
+  ) +
+  theme(
+    axis.title = element_blank()
+  )
+```
+
+
+
+```{r}
+top_b <- modern |> 
+  filter(
+    Country == 'China'|
+      Country == 'India'|
+      Country == 'United States'|
+      Country == 'Russia'|
+      Country == 'Saudi Arabia'
+  ) |> 
+  distinct(`Record ID`, .keep_all = TRUE)
+
+time <- top_b %>% 
+  distinct(`Record ID`, .keep_all = TRUE) %>% 
+  group_by(ret_year) %>% 
+  summarise(count = n())
+
+ggplot(
+  time,
+  aes(
+    x = ret_year,
+    y = count
+  )
+) +
+  geom_line()  +
+  scale_y_continuous(
+    labels = comma
+  ) +
+  labs(
+    title = 'Number of Publications Retracted Over Time (2010-2025)'
+  ) +
+  theme(
+    axis.title = element_blank()
+  )
+```
+
+As we look at how many publications are retracted over time we see that in the years 2022-2024 there is a surge of retractions among the top 5 countries. This led to the question of where is this surge coming from.
+
+```{r}
+top_b |> 
+  count(Country, ret_year) |> 
+  ggplot(aes(x = ret_year, y = n)) +
+  geom_line() +
+  facet_wrap(~ Country, scales = "free_y") +
+  theme(
+    axis.title.x = element_blank()
+  ) +
+  labs(
+    y = 'Number of Retracted Publications'
+  )  +
+  scale_y_continuous(
+    labels = comma
+  ) 
+
+
+```
+
+We find that almost each of the top 5 countries has a surge of retracted publications during this time period with China and India having the largest impact. (Please note that the y-axis is different for each of the line graphs. This is to better show the shape of the data)
