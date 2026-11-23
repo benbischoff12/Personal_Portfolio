@@ -1,0 +1,274 @@
+---
+title: "kfc_work"
+---
+
+```{r}
+# Import cleaned KFC survey data into RStudio
+# Place this script and KFC_Survey_RStudio_Clean.csv in the same folder.
+# Base R only; no packages required.
+library(tidyverse)
+survey <- read.csv(
+  "KFC_Survey_RStudio_Filtered_Eaters.csv",
+  stringsAsFactors = FALSE,
+  na.strings = c("", "NA")
+)
+
+# Quick checks
+dim(survey)
+names(survey)
+head(survey)
+summary(survey)
+table(survey$monthly_frequency_kfc)
+# Example: average recommendation score for KFC
+# mean(survey$recommendation_score_kfc, na.rm = TRUE)
+
+survey %>%
+  count(monthly_frequency_kfc) %>%
+  ggplot(aes(x = monthly_frequency_kfc, y = n)) +
+  geom_col(fill = "darkred") +
+  labs(
+    title = "How Frequently Customers Eat at KFC",
+    x = "Visit Frequency",
+    y = "Number of Respondents"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+survey %>%
+  filter(weekly_eating_out_breakfast != "Almost Never") |> 
+  count(monthly_frequency_kfc, sort = TRUE) %>%
+  ggplot(aes(
+    x = reorder(monthly_frequency_kfc, n),
+    y = n
+  )) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Most Important Factors When Choosing KFC",
+    x = "Factor",
+    y = "Number of Respondents"
+  ) +
+  theme_minimal()
+
+survey_final %>%
+  filter(restaurant_factor_kfc != "I almost never eat here") |> 
+  count(restaurant_factor_kfc, sort = TRUE) %>%
+  ggplot(aes(
+    x = reorder(restaurant_factor_kfc, n),
+    y = n
+  )) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Most Important Factors When Choosing KFC",
+    x = "Factor",
+    y = "Number of Respondents"
+  ) +
+  theme_minimal()
+
+survey_final %>%
+  filter(restaurant_factor_mcdonald_s != "I almost never eat here") |> 
+  count(restaurant_factor_mcdonald_s, sort = TRUE) %>%
+  ggplot(aes(
+    x = reorder(restaurant_factor_mcdonald_s, n),
+    y = n
+  )) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Most Important Factors When Choosing McDonalds",
+    x = "Factor",
+    y = "Number of Respondents"
+  ) +
+  theme_minimal()
+
+survey_final %>%
+  filter(restaurant_factor_wendy_s != "I almost never eat here") |> 
+  count(restaurant_factor_wendy_s, sort = TRUE) %>%
+  ggplot(aes(
+    x = reorder(restaurant_factor_wendy_s, n),
+    y = n
+  )) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Most Important Factors When Choosing Wendy's",
+    x = "Factor",
+    y = "Number of Respondents"
+  ) +
+  theme_minimal()
+
+survey_final %>%
+  filter(restaurant_factor_chick_fil_a != "I almost never eat here") |> 
+  count(restaurant_factor_chick_fil_a, sort = TRUE) %>%
+  ggplot(aes(
+    x = reorder(restaurant_factor_chick_fil_a, n),
+    y = n
+  )) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Most Important Factors When Choosing Chick-Fil-A",
+    x = "Factor",
+    y = "Number of Respondents"
+  ) +
+  theme_minimal()
+
+survey %>%
+  pivot_longer(
+    cols = c(rating_kfc, rating_canes),
+    names_to = "Restaurant",
+    values_to = "Rating"
+  ) %>%
+  ggplot(aes(x = Restaurant, y = Rating, fill = Restaurant)) +
+  geom_boxplot() +
+  labs(
+    title = "Customer Ratings: KFC vs. Raising Cane's",
+    x = "Restaurant",
+    y = "Rating"
+  ) +
+  theme_minimal()
+
+survey %>%
+  count(recommendation_score_kfc) %>%
+  ggplot(aes(
+    x = recommendation_score_kfc,
+    y = n
+  )) +
+  geom_col(fill = "darkorange") +
+  labs(
+    title = "KFC Recommendation Score Distribution",
+    x = "Recommendation Score",
+    y = "Number of Respondents"
+  ) +
+  theme_minimal()
+
+survey %>%
+  count(age_range, restaurant_factor_kfc) %>%
+  ggplot(aes(
+    x = restaurant_factor_kfc,
+    y = age_range,
+    fill = n
+  )) +
+  geom_tile() +
+  labs(
+    title = "Restaurant Selection Factors by Age Group",
+    x = "Selection Factor",
+    y = "Age Group",
+    fill = "Respondents"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+
+survey %>%
+  #filter(restaurant_factor_kfc != "I almost never eat here") |> 
+  count(weekly_eating_out_breakfast, sort = TRUE) %>%
+  ggplot(aes(
+    x = reorder(weekly_eating_out_breakfast, n),
+    y = n
+  )) +
+  geom_col(fill = "steelblue") 
+
+library(tidyverse)
+survey_filtered <- read.csv(
+  "KFC_Survey_RStudio_Filtered_Eaters.csv",
+  stringsAsFactors = FALSE,
+  na.strings = c("", "NA")
+)
+
+# Identify survey response columns
+response_columns <- survey_filtered %>%
+  select(-respondent_id) %>%
+  names()
+
+# Count missing responses
+survey_filtered <- survey_filtered %>%
+  mutate(
+    missing_count = rowSums(
+      is.na(across(all_of(response_columns)))
+    )
+  )
+
+# Count skipped or declined responses
+survey_filtered <- survey_filtered %>%
+  mutate(
+    skipped_count = rowSums(
+      across(
+        all_of(response_columns),
+        ~ str_detect(
+          coalesce(as.character(.x), ""),
+          regex(
+            "Skip this question|Prefer not to say",
+            ignore_case = TRUE
+          )
+        )
+      )
+    )
+  )
+
+# Calculate total unanswered questions
+survey_filtered <- survey_filtered %>%
+  mutate(
+    unanswered_total = missing_count + skipped_count
+  )
+
+# Keep respondents with no more than 50% unanswered
+survey_final <- survey_filtered %>%
+  filter(unanswered_total <= 44) %>%
+  select(-missing_count, -skipped_count, -unanswered_total)
+
+# Check the final data
+dim(survey_final)
+
+View(survey_final)
+
+survey_final %>%
+  #filter(restaurant_factor_kfc != "I almost never eat here") |> 
+  count(weekly_eating_out_breakfast, sort = TRUE) %>%
+  ggplot(aes(
+    x = reorder(weekly_eating_out_breakfast, n),
+    y = n
+  )) +
+  geom_col(fill = "steelblue") 
+
+
+survey_final %>%
+  filter(weekly_eating_out_lunch != "Almost never",  monthly_frequency_kfc != "Almost never") %>%
+  ggplot(aes(x = monthly_frequency_kfc)) +
+  geom_bar() +
+  theme_minimal()
+
+survey_final %>%
+  filter(weekly_eating_out_breakfast != "Almost never", monthly_frequency_kfc != "Almost never") %>%
+  ggplot(aes(x = monthly_frequency_kfc)) +
+  geom_bar() +
+  theme_minimal()
+
+survey_final %>%
+  filter(weekly_eating_out_dinner != "Almost never", monthly_frequency_kfc != "Almost never") %>%
+  ggplot(aes(x = monthly_frequency_kfc)) +
+  geom_bar() +
+  theme_minimal()
+
+
+survey %>%
+  filter(weekly_eating_out_dinner != "Almost never", monthly_frequency_kfc == "Almost never") |> 
+  count(recommendation_score_kfc) %>%
+  ggplot(aes(
+    x = recommendation_score_kfc,
+    y = n
+  )) +
+  geom_col(fill = "darkorange") +
+  labs(
+    title = "KFC Recommendation Score Distribution",
+    x = "Recommendation Score",
+    y = "Number of Respondents"
+  ) +
+  theme_minimal()
+
+
+
+```
