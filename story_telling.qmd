@@ -102,6 +102,22 @@ survey_final %>%
   theme_minimal()
 
 survey_final %>%
+  filter(restaurant_factor_popeyes != "I almost never eat here") |> 
+  count(restaurant_factor_popeyes, sort = TRUE) %>%
+  ggplot(aes(
+    x = reorder(restaurant_factor_popeyes, n),
+    y = n
+  )) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Most Important Factors When Choosing Wendy's",
+    x = "Factor",
+    y = "Number of Respondents"
+  ) +
+  theme_minimal()
+
+survey_final %>%
   filter(restaurant_factor_chick_fil_a != "I almost never eat here") |> 
   count(restaurant_factor_chick_fil_a, sort = TRUE) %>%
   ggplot(aes(
