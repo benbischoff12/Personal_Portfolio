@@ -8,7 +8,7 @@ subtitle: "BUS 499"
 ```{r}
 # Import cleaned KFC survey data into RStudio
 # Place this script and KFC_Survey_RStudio_Clean.csv in the same folder.
-# Base R only; no packages required.
+
 library(tidyverse)
 survey <- read.csv(
   "KFC_Survey_RStudio_Filtered_Eaters.csv",
