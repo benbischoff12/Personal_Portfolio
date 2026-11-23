@@ -90,6 +90,8 @@ website:
         - text: "Project 3"
           file: Story_Telling/project3.qmd
         - text: "---"
+        - text: "KFC"
+          file: Story_Telling/kfc_work.qmd
     - title: "Machine Learning"
       style: "docked"
       background: light
